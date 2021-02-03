@@ -1,0 +1,459 @@
+// Inline
+
+TRACE-1$accumulate$13: ; (unknown)
+	mov $EG(jit_trace_num), %rax
+	mov $0x1, (%rax)
+	mov 0x50(%r14), %rcx
+	vmovsd 0x60(%r14), %xmm2         // xmm2 vontains accumulator
+	mov 0x70(%r14), %rdx             // rdx contains counter
+.L1:
+	cmp %rcx, %rdx
+	jge jit$$trace_exit_0
+	vxorps %xmm0, %xmm0, %xmm0       // Bitwise XOR of xmm0 on itself as a fast clear operation
+	vcvtsi2sd %rdx, %xmm0, %xmm0
+	mov $0x7f4738e9f828, %rax
+	vmulsd (%rax), %xmm0, %xmm0
+	vaddsd %xmm0, %xmm2, %xmm2
+	add $0x1, %rdx
+	mov $EG(vm_interrupt), %rax      // Test for user break or other interrupt conditions
+	cmp $0x0, (%rax)
+	jz .L1
+	jmp jit$$trace_exit_1
+
+// Direct Call
+
+TRACE-1$accumulate$18: ; (unknown)
+	mov $EG(jit_trace_num), %rax
+	mov $0x1, (%rax)
+	mov $EG(vm_stack_end), %rax
+	mov (%rax), %rcx
+	mov $EG(vm_stack_top), %rax
+	sub (%rax), %rcx
+	cmp $0x70, %rcx
+	jb jit$$trace_exit_0
+	cmp $0x5, 0x68(%r14)
+	jnz jit$$trace_exit_1
+.L1:
+	mov 0x70(%r14), %rax
+	cmp 0x50(%r14), %rax
+	jge jit$$trace_exit_2
+	mov 0x40(%r14), %rax
+	mov 0x8(%rax), %rax
+	test %rax, %rax
+	jz .L4
+.L2:
+	mov $EG(vm_stack_top), %r15
+	mov (%r15), %r15
+	mov $EG(vm_stack_top), %rdx
+	add $0x70, (%rdx)
+	mov $0x0, 0x28(%r15)
+	mov %rax, 0x18(%r15)
+	mov $0x0, 0x20(%r15)
+	mov $0x1, 0x2c(%r15)
+	mov 0x70(%r14), %rdx
+	mov %rdx, 0x50(%r15)
+	mov $0x4, 0x58(%r15)
+	mov $0x7fa8b809fb38, %rax
+	mov %rax, (%r14)
+	mov %r14, 0x30(%r15)
+	mov $0x0, 0x8(%r15)
+	lea 0x80(%r14), %rdx
+	mov %rdx, 0x10(%r15)
+	mov 0x18(%r15), %rax
+	mov 0x50(%rax), %rdx
+	mov $0x5648d480dc38, %rcx
+	add (%rcx), %rdx
+	mov (%rdx), %rdx
+	mov %rdx, 0x40(%r15)
+	mov $EG(current_execute_data), %rcx
+	mov %r15, (%rcx)
+	mov %r15, %r14
+	cmp $0x1, 0x2c(%r14)
+	jb jit$$trace_exit_3
+	cmp $0x4, 0x58(%r14)
+	jnz .L5
+.L3:
+	vxorps %xmm0, %xmm0, %xmm0
+	vcvtsi2sd 0x50(%r14), %xmm0, %xmm0
+	mov $0x7fa8b809f828, %rax
+	vmulsd (%rax), %xmm0, %xmm0
+	mov 0x10(%r14), %rcx
+	vmovsd %xmm0, (%rcx)
+	mov $0x5, 0x8(%rcx)
+	mov $EG(vm_stack_top), %rax
+	mov %r14, (%rax)
+	mov 0x30(%r14), %r14
+	mov $EG(current_execute_data), %rax
+	mov %r14, (%rax)
+	vmovsd 0x60(%r14), %xmm0
+	vaddsd 0x80(%r14), %xmm0, %xmm0
+	vmovsd %xmm0, 0x60(%r14)
+	add $0x1, 0x70(%r14)
+	mov $EG(vm_interrupt), %rax
+	cmp $0x0, (%rax)
+	jz .L1
+	jmp jit$$trace_exit_4
+.L4:
+	mov $0x7fa8b809f740, %rdi
+	mov $zend_jit_init_func_run_time_cache_helper, %rax
+	call *%rax
+	mov 0x40(%r14), %rcx
+	mov %rax, 0x8(%rcx)
+	jmp .L2
+.L5:
+	lea 0x50(%r14), %rdi
+	mov $0x7fa8b809f838, %rax
+	mov %rax, (%r14)
+	mov $0x7fa8b809f8b8, %rsi
+	mov $zend_jit_verify_arg_slow, %rax
+	call *%rax
+	test %al, %al
+	jnz .L3
+	jmp JIT$$exception_handler
+
+// Call Indirect
+
+TRACE-1$accumulate$19: ; (unknown)
+	mov $EG(jit_trace_num), %rax
+	mov $0x1, (%rax)
+	mov $EG(vm_stack_end), %rax
+	mov (%rax), %rcx
+	mov $EG(vm_stack_top), %rax
+	sub (%rax), %rcx
+	cmp $0x70, %rcx
+	jb jit$$trace_exit_0
+	cmp $0x5, 0x68(%r14)
+	jnz jit$$trace_exit_1
+	cmp $0x4, 0x78(%r14)
+	jnz jit$$trace_exit_2
+.L1:
+	mov 0x70(%r14), %rax
+	cmp 0x50(%r14), %rax
+	jge jit$$trace_exit_3
+	mov 0x40(%r14), %rax
+	mov 0x8(%rax), %rax
+	test %rax, %rax
+	jz .L4
+.L2:
+	mov $EG(vm_stack_top), %r15
+	mov (%r15), %r15
+	mov $EG(vm_stack_top), %rdx
+	add $0x70, (%rdx)
+	mov $0x0, 0x28(%r15)
+	mov %rax, 0x18(%r15)
+	mov $0x0, 0x20(%r15)
+	mov $0x1, 0x2c(%r15)
+	mov 0x70(%r14), %rdx
+	mov %rdx, 0x50(%r15)
+	mov $0x4, 0x58(%r15)
+	mov $0x7fc2ad29fb50, %rax
+	mov %rax, (%r14)
+	mov %r14, 0x30(%r15)
+	mov $0x0, 0x8(%r15)
+	lea 0x80(%r14), %rdx
+	mov %rdx, 0x10(%r15)
+	mov 0x18(%r15), %rax
+	mov 0x50(%rax), %rdx
+	mov $0x5575709fdc38, %rcx
+	add (%rcx), %rdx
+	mov (%rdx), %rdx
+	mov %rdx, 0x40(%r15)
+	mov $EG(current_execute_data), %rcx
+	mov %r15, (%rcx)
+	mov %r15, %r14
+	cmp $0x1, 0x2c(%r14)
+	jb jit$$trace_exit_5
+	cmp $0x4, 0x58(%r14)
+	jnz .L5
+.L3:
+	vxorps %xmm0, %xmm0, %xmm0
+	vcvtsi2sd 0x50(%r14), %xmm0, %xmm0
+	mov $0x7fc2ad29f828, %rax
+	vmulsd (%rax), %xmm0, %xmm0
+	mov 0x10(%r14), %rcx
+	vmovsd %xmm0, (%rcx)
+	mov $0x5, 0x8(%rcx)
+	mov $EG(vm_stack_top), %rax
+	mov %r14, (%rax)
+	mov 0x30(%r14), %r14
+	mov $EG(current_execute_data), %rax
+	mov %r14, (%rax)
+	vmovsd 0x60(%r14), %xmm0
+	vaddsd 0x80(%r14), %xmm0, %xmm0
+	vmovsd %xmm0, 0x60(%r14)
+	add $0x1, 0x70(%r14)
+	jo jit$$trace_exit_6
+	mov $EG(vm_interrupt), %rax
+	cmp $0x0, (%rax)
+	jz .L1
+	jmp jit$$trace_exit_7
+.L4:
+	mov $0x7fc2acbfe168, %rdi
+	mov $zend_jit_find_func_helper, %rax
+	call *%rax
+	mov 0x40(%r14), %rcx
+	mov %rax, 0x8(%rcx)
+	mov $0x7fc2ad29f740, %rcx
+	cmp %rcx, %rax
+	jz .L2
+	jmp jit$$trace_exit_4
+.L5:
+	lea 0x50(%r14), %rdi
+	mov $0x7fc2ad29f838, %rax
+	mov %rax, (%r14)
+	mov $0x7fc2ad29f8b8, %rsi
+	mov $zend_jit_verify_arg_slow, %rax
+	call *%rax
+	test %al, %al
+	jnz .L3
+	jmp JIT$$exception_handler
+
+// Call method
+
+TRACE-1$accumulate$20: ; (unknown)
+	mov $EG(jit_trace_num), %rax
+	mov $0x1, (%rax)
+	cmp $0x5, 0x78(%r14)
+	jnz jit$$trace_exit_0
+	cmp $0x4, 0x88(%r14)
+	jnz jit$$trace_exit_1
+.L1:
+	mov 0x80(%r14), %rax
+	cmp 0x50(%r14), %rax
+	jge jit$$trace_exit_2
+	mov 0x60(%r14), %rdi
+	mov %rdi, (%rsp)
+	mov 0x40(%r14), %rax
+	mov 0x10(%rax), %rdx
+	cmp 0x10(%rdi), %rdx
+	jnz .L6
+	mov 0x18(%rax), %rax
+.L2:
+	mov $0x7f83ce69f950, %rcx
+	cmp %rcx, %rax
+	jnz jit$$trace_exit_3
+	mov $EG(vm_stack_top), %r15
+	mov (%r15), %r15
+	mov $EG(vm_stack_end), %rdx
+	mov (%rdx), %rdx
+	sub %r15, %rdx
+	cmp $0x70, %rdx
+	jb jit$$trace_exit_4
+	mov $EG(vm_stack_top), %rdx
+	add $0x70, (%rdx)
+	mov %rax, 0x18(%r15)
+	mov (%rsp), %rcx
+	mov %rcx, 0x20(%r15)
+	add $0x1, (%rcx)
+	mov $0x200308, 0x28(%r15)
+	mov $0x1, 0x2c(%r15)
+	mov 0x80(%r14), %rdx
+	mov %rdx, 0x50(%r15)
+	mov $0x4, 0x58(%r15)
+	mov $0x7f83ce69fe38, %rax
+	mov %rax, (%r14)
+	mov %r14, 0x30(%r15)
+	mov $0x0, 0x8(%r15)
+	lea 0x90(%r14), %rdx
+	mov %rdx, 0x10(%r15)
+	mov 0x18(%r15), %rax
+	mov 0x50(%rax), %rdx
+	mov $0x5646b693ec38, %rcx
+	add (%rcx), %rdx
+	mov (%rdx), %rdx
+	mov %rdx, 0x40(%r15)
+	mov $EG(current_execute_data), %rcx
+	mov %r15, (%rcx)
+	mov %r15, %r14
+	cmp $0x1, 0x2c(%r14)
+	jb jit$$trace_exit_5
+	cmp $0x4, 0x58(%r14)
+	jnz .L7
+.L3:
+	vxorps %xmm0, %xmm0, %xmm0
+	vcvtsi2sd 0x50(%r14), %xmm0, %xmm0
+	mov $0x7f83ce69fa38, %rax
+	vmulsd (%rax), %xmm0, %xmm0
+	mov 0x10(%r14), %rcx
+	vmovsd %xmm0, (%rcx)
+	mov $0x5, 0x8(%rcx)
+	mov 0x28(%r14), %edi
+	mov 0x30(%r14), %rax
+	mov $EG(current_execute_data), %rdx
+	mov %rax, (%rdx)
+	test $0x200000, %edi
+	jz .L5
+	mov 0x20(%r14), %rdi
+	sub $0x1, (%rdi)
+	jnz .L4
+	mov $zend_objects_store_del, %rax
+	call *%rax
+	jmp .L5
+.L4:
+	test $0xfffffc10, 0x4(%rdi)
+	jnz .L5
+	mov $gc_possible_root, %rax
+	call *%rax
+.L5:
+	mov $EG(vm_stack_top), %rax
+	mov %r14, (%rax)
+	mov 0x30(%r14), %r14
+	mov $EG(exception), %rax
+	cmp $0x0, (%rax)
+	jnz JIT$$leave_throw
+	vmovsd 0x70(%r14), %xmm0
+	vaddsd 0x90(%r14), %xmm0, %xmm0
+	vmovsd %xmm0, 0x70(%r14)
+	add $0x1, 0x80(%r14)
+	jo jit$$trace_exit_6
+	mov $EG(vm_interrupt), %rax
+	cmp $0x0, (%rax)
+	jz .L1
+	jmp jit$$trace_exit_7
+.L6:
+	mov $0x7f83ce69fcf8, %rsi
+	lea (%rsp), %rdx
+	mov $0x7f83ce69fdf8, %rax
+	mov %rax, (%r14)
+	mov $zend_jit_find_method_helper, %rax
+	call *%rax
+	test %rax, %rax
+	jnz .L2
+	jmp JIT$$exception_handler
+.L7:
+	lea 0x50(%r14), %rdi
+	mov $0x7f83ce69fa48, %rax
+	mov %rax, (%r14)
+	mov $0x7f83ce69fac8, %rsi
+	mov $zend_jit_verify_arg_slow, %rax
+	call *%rax
+	test %al, %al
+	jnz .L3
+	jmp JIT$$exception_handler
+
+// Call Closure
+TRACE-1$accumulate$16: ; (unknown)
+	mov $EG(jit_trace_num), %rax
+	mov $0x1, (%rax)
+	cmp $0x8, 0x68(%r14)
+	jnz jit$$trace_exit_0
+	cmp $0x5, 0x78(%r14)
+	jnz jit$$trace_exit_1
+	cmp $0x4, 0x88(%r14)
+	jnz jit$$trace_exit_2
+.L1:
+	mov 0x80(%r14), %rax
+	cmp 0x50(%r14), %rax
+	jge jit$$trace_exit_3
+	mov 0x60(%r14), %rax
+	mov $0x557e25ef6aa0, %rdi
+	cmp %rdi, 0x10(%rax)
+	jnz jit$$trace_exit_4
+	mov $0x7f2a7c49fbc0, %rdi
+	cmp %rdi, 0x80(%rax)
+	jnz jit$$trace_exit_5
+	mov $EG(vm_stack_top), %r15
+	mov (%r15), %r15
+	mov $EG(vm_stack_end), %rdx
+	mov (%rdx), %rdx
+	sub %r15, %rdx
+	cmp $0x70, %rdx
+	jb jit$$trace_exit_4
+	mov $EG(vm_stack_top), %rdx
+	add $0x70, (%rdx)
+	mov $0x0, 0x28(%r15)
+	lea 0x38(%rax), %rcx
+	mov %rcx, 0x18(%r15)
+	add $0x1, (%rax)
+	mov 0x130(%rax), %rcx
+	mov %rcx, 0x20(%r15)
+	mov 0x3c(%rax), %edx
+	and $0x800000, %edx
+	or $0x2400000, %edx
+	cmp $0x0, 0x128(%rax)
+	jz .L2
+	or $0x308, %edx
+	mov 0x120(%rax), %rcx
+.L2:
+	or %edx, 0x28(%r15)
+	mov %rcx, 0x20(%r15)
+	cmp $0x0, 0x88(%rax)
+	jnz .L3
+	lea 0x38(%rax), %rdi
+	mov $zend_jit_init_func_run_time_cache_helper, %rax
+	call *%rax
+.L3:
+	mov $0x1, 0x2c(%r15)
+	mov 0x80(%r14), %rdx
+	mov %rdx, 0x50(%r15)
+	mov $0x4, 0x58(%r15)
+	mov $0x7f2a7c49f938, %rax
+	mov %rax, (%r14)
+	mov %r14, 0x30(%r15)
+	mov $0x0, 0x8(%r15)
+	lea 0x90(%r14), %rdx
+	mov %rdx, 0x10(%r15)
+	mov 0x18(%r15), %rax
+	mov 0x50(%rax), %rdx
+	test $0x1, %rdx
+	jz .L4
+	mov $0x557e24855c38, %rcx
+	add (%rcx), %rdx
+.L4:
+	mov (%rdx), %rdx
+	mov %rdx, 0x40(%r15)
+	mov $EG(current_execute_data), %rcx
+	mov %r15, (%rcx)
+	mov %r15, %r14
+	cmp $0x1, 0x2c(%r14)
+	jb jit$$trace_exit_6
+	cmp $0x4, 0x58(%r14)
+	jnz .L8
+.L5:
+	vxorps %xmm0, %xmm0, %xmm0
+	vcvtsi2sd 0x50(%r14), %xmm0, %xmm0
+	mov $0x7f2a7c49fbb0, %rax
+	vmulsd (%rax), %xmm0, %xmm0
+	mov 0x10(%r14), %rcx
+	vmovsd %xmm0, (%rcx)
+	mov $0x5, 0x8(%rcx)
+	mov 0x30(%r14), %rax
+	mov $EG(current_execute_data), %rdx
+	mov %rax, (%rdx)
+	mov 0x18(%r14), %rdi
+	sub $0x38, %rdi
+	sub $0x1, (%rdi)
+	jnz .L6
+	mov $zend_objects_store_del, %rax
+	call *%rax
+	jmp .L7
+.L6:
+	test $0xfffffc10, 0x4(%rdi)
+	jnz .L7
+	mov $gc_possible_root, %rax
+	call *%rax
+.L7:
+	mov $EG(vm_stack_top), %rax
+	mov %r14, (%rax)
+	mov 0x30(%r14), %r14
+	vmovsd 0x70(%r14), %xmm0
+	vaddsd 0x90(%r14), %xmm0, %xmm0
+	vmovsd %xmm0, 0x70(%r14)
+	add $0x1, 0x80(%r14)
+	jo jit$$trace_exit_7
+	mov $EG(vm_interrupt), %rax
+	cmp $0x0, (%rax)
+	jz .L1
+	jmp jit$$trace_exit_8
+.L8:
+	lea 0x50(%r14), %rdi
+	mov $0x7f2a7c49fbc0, %rax
+	mov %rax, (%r14)
+	mov $0x7f2a7c49fc40, %rsi
+	mov $zend_jit_verify_arg_slow, %rax
+	call *%rax
+	test %al, %al
+	jnz .L5
+	jmp JIT$$exception_handler
+
+

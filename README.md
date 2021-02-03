@@ -62,7 +62,7 @@ Function call overhead for a small (simple multiply-accumulate) function is test
 - All times are User time, in seconds, collected by the `time` command.
 - Strict indicates whether the code was excuted with `declare(strict_types=1)` or not.
 - The Increase with JIT is the speedup factor with JIT enabled, i.e. how many times faster the code is with JIT enabled versus disabled.
-- Call Overhead is the slowdown factor for calling the function relative to the inline version, i.e. how many times slower the code is versus the inline operation. This has been determined for the JIT mode only.
+- Call Overhead is the slowdown factor for calling the function relative to the inline version, i.e. how many times slower the code is versus the inline operation.
 
 | Operation | Strict? | JIT Disabled | JIT Enabled | Increase with JIT | Call Overhead | Call Overhead (JIT) |
 | --------- | ------- | ------------ | ----------- | - | - | - |
@@ -89,3 +89,91 @@ Notes:
 - Strict type enforcement has no significant impact on either execution model.
 - JIT mode can offer significant speed up for simple imperative code.
 - Function call overhead remains large in either execution model but has a larger impact on JIT executed code.
+
+### JIT Analysis
+
+The PHP code tested in the inline case was:
+
+```php
+function accumulate(int $iMax) : float {
+    $fAcum = 0.0;
+    for ($i = 1; $i<$iMax; $i++) {
+        $fAcum += 0.001 * $i;
+    }
+    return $fAcum;
+}
+```
+
+The loop was been intentionally designed to make unrolling difficult to make the generated code easier to understand. We expect to see:
+
+- Sensible register allocation for temporaries.
+- A basic loop test and exit.
+- Counter increment.
+- Counter conversion to double.
+- Multiply and accumulation.
+- Sundry interrupt handling.
+
+The generated assembler for the inline test is shown below:
+
+```
+TRACE-1$accumulate$13: ; (unknown)
+	mov $EG(jit_trace_num), %rax
+	mov $0x1, (%rax)
+
+    // %r14 contains call frame data
+	mov    0x50(%r14), %rcx          // %rcx contains $iMax
+	vmovsd 0x60(%r14), %xmm2         // %xmm2 contains double accumulator $fAcum
+	mov    0x70(%r14), %rdx          // %rdx contains $i
+	
+.L1:                                 // Loop: 11 instructions, 3 memory accesses
+	cmp %rcx, %rdx                   // Compare $iMax and $i...
+	jge jit$$trace_exit_0            //    Exit if $i >= $iMax
+	
+	vxorps    %xmm0, %xmm0, %xmm0    // XOR hack to zero out %xmm0, use as $fTemp
+	vcvtsi2sd %rdx,  %xmm0, %xmm0    // Cast $i to double precision in $fTemp
+
+	mov $0x7f4738e9f828, %rax        // Loads resolved address of literal 0.001 into %rax
+	vmulsd (%rax), %xmm0, %xmm0      // $fTemp = 0.001 * $fTemp
+	vaddsd %xmm0, %xmm2, %xmm2       // $fAcum += $fTemp
+	
+	add $0x1, %rdx                   // $i++
+	mov $EG(vm_interrupt), %rax      // Test for user break or other interrupt conditions
+	cmp $0x0, (%rax)                 // Interrupt data at (%rax) ?
+	jz .L1                           //    If not, iterate
+	jmp jit$$trace_exit_1            //    Otherwise, exit with interrupted case
+
+```
+
+Notes:
+
+- The literal 0.001 was stored at address 0x7f4738e9f828 during this run.
+- The literal was not assigned to a temporary for use within the loop.
+- Each iteration reloaded the address into %rax and forced the use of an indirect addressing mode operand in the subsequent multiply.
+- Uncessesary clobbering of registers
+
+An improved output could be:
+
+```
+	mov $EG(jit_trace_num), %rax
+	mov $0x1, (%rax)
+
+	mov    0x50(%r14), %rcx
+	vmovsd 0x60(%r14), %xmm2
+	mov    0x70(%r14), %rdx
+
+    mov    $0x7f4738e9f828, %rax     // Resolved address of literal 0.001
+    vmovsd (%rax), %xmm1             // %xmm1 contains 0.001
+
+	mov $EG(vm_interrupt), %rax	     // %rax is now invariant for rest of the loop
+.L1:                                 // Loop: 9 instuctions, 1 memory access
+	cmp %rcx, %rdx
+	jge jit$$trace_exit_0
+	vxorps    %xmm0, %xmm0, %xmm0
+	vcvtsi2sd %rdx,  %xmm0, %xmm0
+	vmulsd    %xmm1, %xmm0, %xmm0
+	vaddsd    %xmm0, %xmm2, %xmm2
+	add $0x1, %rdx
+	cmp $0x0, (%rax)                 // Interrupt data at (%rax) ?
+	jz .L1                           //    If not, iterate
+	jmp jit$$trace_exit_1            //    Otherwise, exit with interrupted case
+```
