@@ -2,7 +2,7 @@
 
 ## About
 
-A place for messing about with PHP8 to better understand it's theoretical and actual performance.
+A place for messing about with PHP8 to better understand its theoretical and actual performance.
 
 ## PHP Version
 ```
