@@ -172,8 +172,8 @@ TRACE-1$accumulate$13: ; (unknown)
     vcvtsi2sd %rdx,  %xmm0, %xmm0
     vmulsd    %xmm1, %xmm0, %xmm0
     vaddsd    %xmm0, %xmm2, %xmm2
-    add $0x1, %rdx
-    cmp $0x0, (%rax)                 // Interrupt data at (%rax) ?
-    jz .L1                           //    If not, iterate
-    jmp jit$$trace_exit_1            //    Otherwise, exit with interrupted case
+    add       $0x1, %rdx
+    cmp       $0x0, (%rax)
+    jz        .L1
+    jmp       jit$$trace_exit_1
 ```
