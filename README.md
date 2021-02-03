@@ -115,33 +115,32 @@ The loop was been intentionally designed to make unrolling difficult to make the
 
 The generated assembler for the inline test is shown below:
 
-```
+```asm
 TRACE-1$accumulate$13: ; (unknown)
-	mov $EG(jit_trace_num), %rax
-	mov $0x1, (%rax)
+    mov $EG(jit_trace_num), %rax
+    mov $0x1, (%rax)
 
     // %r14 contains call frame data
-	mov    0x50(%r14), %rcx          // %rcx contains $iMax
-	vmovsd 0x60(%r14), %xmm2         // %xmm2 contains double accumulator $fAcum
-	mov    0x70(%r14), %rdx          // %rdx contains $i
+    mov    0x50(%r14), %rcx          // %rcx contains $iMax
+    vmovsd 0x60(%r14), %xmm2         // %xmm2 contains double accumulator $fAcum
+    mov    0x70(%r14), %rdx          // %rdx contains $i
 	
 .L1:                                 // Loop: 11 instructions, 3 memory accesses
-	cmp %rcx, %rdx                   // Compare $iMax and $i...
-	jge jit$$trace_exit_0            //    Exit if $i >= $iMax
+    cmp %rcx, %rdx                   // Compare $iMax and $i...
+    jge jit$$trace_exit_0            //    Exit if $i >= $iMax
 	
-	vxorps    %xmm0, %xmm0, %xmm0    // XOR hack to zero out %xmm0, use as $fTemp
-	vcvtsi2sd %rdx,  %xmm0, %xmm0    // Cast $i to double precision in $fTemp
+    vxorps    %xmm0, %xmm0, %xmm0    // XOR hack to zero out %xmm0, use as $fTemp
+    vcvtsi2sd %rdx,  %xmm0, %xmm0    // Cast $i to double precision in $fTemp
 
-	mov $0x7f4738e9f828, %rax        // Loads resolved address of literal 0.001 into %rax
-	vmulsd (%rax), %xmm0, %xmm0      // $fTemp = 0.001 * $fTemp
-	vaddsd %xmm0, %xmm2, %xmm2       // $fAcum += $fTemp
+    mov $0x7f4738e9f828, %rax        // Loads resolved address of literal 0.001 into %rax
+    vmulsd (%rax), %xmm0, %xmm0      // $fTemp = 0.001 * $fTemp
+    vaddsd %xmm0, %xmm2, %xmm2       // $fAcum += $fTemp
 	
-	add $0x1, %rdx                   // $i++
-	mov $EG(vm_interrupt), %rax      // Test for user break or other interrupt conditions
-	cmp $0x0, (%rax)                 // Interrupt data at (%rax) ?
-	jz .L1                           //    If not, iterate
-	jmp jit$$trace_exit_1            //    Otherwise, exit with interrupted case
-
+    add $0x1, %rdx                   // $i++
+    mov $EG(vm_interrupt), %rax      // Test for user break or other interrupt conditions
+    cmp $0x0, (%rax)                 // Interrupt data at (%rax) ?
+    jz .L1                           //    If not, iterate
+    jmp jit$$trace_exit_1            //    Otherwise, exit with interrupted case
 ```
 
 Notes:
@@ -153,27 +152,28 @@ Notes:
 
 An improved output could be:
 
-```
-	mov $EG(jit_trace_num), %rax
-	mov $0x1, (%rax)
-
-	mov    0x50(%r14), %rcx
-	vmovsd 0x60(%r14), %xmm2
-	mov    0x70(%r14), %rdx
-
+```asm
+TRACE-1$accumulate$13: ; (unknown)
+    mov    $EG(jit_trace_num), %rax
+    mov    $0x1, (%rax)
+    mov    0x50(%r14), %rcx
+    vmovsd 0x60(%r14), %xmm2
+    mov    0x70(%r14), %rdx
+    
+    // Loop invariants
     mov    $0x7f4738e9f828, %rax     // Resolved address of literal 0.001
     vmovsd (%rax), %xmm1             // %xmm1 contains 0.001
-
-	mov $EG(vm_interrupt), %rax	     // %rax is now invariant for rest of the loop
+    mov    $EG(vm_interrupt), %rax   // %rax not clobbered past here
+    
 .L1:                                 // Loop: 9 instuctions, 1 memory access
-	cmp %rcx, %rdx
-	jge jit$$trace_exit_0
-	vxorps    %xmm0, %xmm0, %xmm0
-	vcvtsi2sd %rdx,  %xmm0, %xmm0
-	vmulsd    %xmm1, %xmm0, %xmm0
-	vaddsd    %xmm0, %xmm2, %xmm2
-	add $0x1, %rdx
-	cmp $0x0, (%rax)                 // Interrupt data at (%rax) ?
-	jz .L1                           //    If not, iterate
-	jmp jit$$trace_exit_1            //    Otherwise, exit with interrupted case
+    cmp %rcx, %rdx
+    jge jit$$trace_exit_0
+    vxorps    %xmm0, %xmm0, %xmm0    // All register to register here
+    vcvtsi2sd %rdx,  %xmm0, %xmm0
+    vmulsd    %xmm1, %xmm0, %xmm0
+    vaddsd    %xmm0, %xmm2, %xmm2
+    add $0x1, %rdx
+    cmp $0x0, (%rax)                 // Interrupt data at (%rax) ?
+    jz .L1                           //    If not, iterate
+    jmp jit$$trace_exit_1            //    Otherwise, exit with interrupted case
 ```
