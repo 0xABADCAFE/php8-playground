@@ -57,25 +57,35 @@ power management:
 
 ## Function Call Overhead Test
 
-Function call overhead for a small (single statement operation) function is tested against the same operation performed inline.
+Function call overhead for a small (simple multiply-accumulate) function is tested against the same operation performed inline.
 
-- All times are User Runtime in seconds, collected by the `time` command.
+- All times are User time, in seconds, collected by the `time` command.
 - Strict indicates whether the code was excuted with `declare(strict_types=1)` or not.
 - The Increase with JIT is the speedup factor with JIT enabled, i.e. how many times faster the code is with JIT enabled versus disabled.
-- The Overhead v Inline is the slowdown factor for calling the function relative to the inline version, i.e. how many times slower the code is versus the inline operation. This has been determined for the JIT mode only.
+- Call Overhead is the slowdown factor for calling the function relative to the inline version, i.e. how many times slower the code is versus the inline operation. This has been determined for the JIT mode only.
 
-| Operation | Strict? | JIT Disabled | JIT Enabled | Increase with JIT | Overhead v Inline (JIT) |
-| --------- | ------- | ------------ | ----------- | - | - |
-| inline    | No      | 11.87        | 2.94        | 4.04 | |
-| inline    | Yes     | 11.80        | 2.90        | 4.07 | |
-| func()    | No      | 34.26        | 12.91       | 2.65 | 4.39 |
-| func()    | Yes     | 34.28        | 12.82       | 2.67 | 4.42 |
-| $func()   | No      | 42.09        | 13.91       | 3.03 | 4.73 |
-| $func()   | Yes     | 42.19        | 13.88       | 3.04 | 4.79 |
-| $o->func() | No     | 46.73        | 15.96       | 2.93 | 5.43 |
-| $o->func() | Yes    | 46.89        | 15.99       | 2.93 | 5.51 |
+| Operation | Strict? | JIT Disabled | JIT Enabled | Increase with JIT | Call Overhead | Call Overhead (JIT) |
+| --------- | ------- | ------------ | ----------- | - | - | - |
+| inline    | No      | 11.87        | 2.94        | 4.04 | _N/A_ | _N/A_ |
+| inline    | Yes     | 11.80        | 2.90        | 4.07 | _N/A_ | _N/A_ |
+| direct    | No      | 34.26        | 12.91       | 2.65 | 2.89 | 4.39 |
+| direct    | Yes     | 34.28        | 12.82       | 2.67 | 2.91 | 4.42 |
+| indirect  | No      | 42.09        | 13.91       | 3.03 | 3.55 | 4.73 |
+| indirect  | Yes     | 42.19        | 13.88       | 3.04 | 3.58 | 4.79 |
+| method    | No      | 46.73        | 15.96       | 2.93 | 3.94 | 5.43 |
+| method    | Yes     | 46.89        | 15.99       | 2.93 | 3.97 | 5.51 |
+| closure   | No      | 62.39        | 16.74       | 3.73 | 5.26 | 5.69 |
+| closure   | Yes     | 62.32        | 16.73       | 3.73 | 5.28 | 5.77 |
+
+Notes:
+
+- direct is a call do a globally defined function.
+- indirect is a call by function name to a globally defined function.
+- method is a call to a member function on an instance of a class.
+- closure is a call to a locally declared anonymous function.
 
 ### Conclusion
 
+- Strict type enforcement has no significant impact on either execution model.
 - JIT mode can offer significant speed up for simple imperative code.
-- Function call overhead remains enormous regardless of execution model.
+- Function call overhead remains large in either execution model but has a larger impact on JIT executed code.
