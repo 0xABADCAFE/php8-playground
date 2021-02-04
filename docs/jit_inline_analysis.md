@@ -12,7 +12,7 @@ function accumulate(int $iMax) : float {
 }
 ```
 
-The loop was been intentionally designed to make unrolling difficult to make the generated code easier to understand. The first step is for PHP to convert the above source code into _PHP Opcode_ which is the low-level bytecode that is cached and executed by Zend Engine.
+The loop was intentionally designed to make unrolling difficult to make the generated code easier to understand. The first step is for PHP to convert the above source code into _PHP Opcode_ which is the low-level bytecode that is cached and executed by Zend Engine.
 
 
 Using the awesome [Vulcan Logic Dumper](https://github.com/derickr/vld) tool, we can see what this intermim opcode looks like:
