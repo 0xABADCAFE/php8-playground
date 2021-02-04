@@ -309,3 +309,40 @@ There is no immediate way to fix the continuous %rax clobbering that forms part 
 - Manually unrolling loops would increase the amount of work done per interrupt check.
 - Only really sensible for very short loops like this one.
 
+As an otimisation trick, the above is very ugly but was the only approach found to be faster. Alternatives to using the default parameter, such as constants or local static values all resulted in code that performed worse (often 2x or more) than the initial version.
+
+### Comparison with compiled version
+
+As a comparison, it is interesting to look at what the fully ahead of time compiled code looks like. The compiler generates an externally callable version of the accumulate() function but this is not what is executed. Due to the optimisation level, it folds this code into the code generated for main() and prunes away invariants:
+
+```asm
+
+    ; skipped boilerplate
+
+    vmovsd  .LC1(%rip), %xmm2        ; Load 0.001 into %xmm2, .LC1 denotes the location
+    vxorps  %xmm3, %xmm3, %xmm3      ; Clear %xmm3 - used as temporary
+    vxorpd  %xmm1, %xmm1, %xmm1      ; Clear %xmm1 - used as accumulator
+    movl    $1, %eax                 ; Load initial counter in to %rax (32-bit operation used for speed)
+
+.L8:                                 ; Loop head here
+    vcvtsi2sdq  %rax, %xmm3, %xmm0   ; Conversion of i to double in $xmm0.
+    incq        %rax                 ; Increment i (64-bit)
+    vfmadd231sd %xmm2, %xmm0, %xmm1  ; Fused multiply accumulate FTW
+    cmpq        $2000000000, %rax    ; Compare counter with compile time known limit
+    jne         .L8                  ; Rinse and repeat
+
+    ; skipped rest of main() 
+
+.LC1:
+    .long 3539053052
+    .long 1062232653
+```
+
+It is interesting to note that despite the denser code the improvement is so marginal.
+
+## Thoughts
+- The direct conversion of PHP opcode to native code without performing any sort of common code elimination or loop invariant analysis results in significant performance losses compared to what is theoretically acheivable.
+- Equally important however, is that the direct conformance of a given PHP Opcode and the block of native code that results from it means that debugging and other analysis tools which are only aware of the PHP Opcode level continue to be valid, i.e. there ought to be no unexpected change of behaviours emerging from the reorganisation of native version of the code when moving from interpretive to JIT execution.
+
+
+
