@@ -84,11 +84,33 @@ Notes:
 - method is a call to a member function on an instance of a class.
 - closure is a call to a locally declared anonymous function.
 
+### Theoretical Best
+
+Compare the above results with compiled C++ equivalent versions on the same hardware:
+
+| Operation | No Optimisation | Max Optimisation | Increase with Optimisation | Call Overhead (No Optimisation) |
+| --------- | --------------- | ---------------- | ---------------------------| - |
+| inline    | 6.88            | 2.30             | 2.99 | _N/A_ |
+| direct    | 6.96            | 2.30             | 3.03 | 1.012 |
+
+Notes:
+
+- Used gcc 9.3.0
+- No Optimisation is -O0 -march-native
+- Max Optimisation is -O3 -march-native -mavx
+- Function call overhead was extremely small here:
+    - Included for No Optimisation case as the function is always inlined in the Max Optimisation case.
+    - Generation of non-inlined direct function call confirmed in assembler output.
+    - Had to perform multiple runs to extract the actual timing difference from the variance between runs.
+
 ### Conclusion
 
 - Strict type enforcement has no significant impact on either execution model.
 - JIT mode can offer significant speed up for simple imperative code.
+    - Up to 78.2% of the optimised native version for the _inline_ example!
 - Function call overhead remains large in either execution model but has a larger impact on JIT executed code.
+    - Markedly different from native code where the impact of inlining in the example above was difficult to measure.
+
 
 ### JIT Analysis
 

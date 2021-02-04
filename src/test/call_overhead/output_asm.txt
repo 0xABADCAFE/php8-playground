@@ -6,19 +6,19 @@ TRACE-1$accumulate$13: ; (unknown)
 	mov 0x50(%r14), %rcx
 	vmovsd 0x60(%r14), %xmm2         // xmm2 vontains accumulator
 	mov 0x70(%r14), %rdx             // rdx contains counter
-.L1:
-	cmp %rcx, %rdx
-	jge jit$$trace_exit_0
-	vxorps %xmm0, %xmm0, %xmm0       // Bitwise XOR of xmm0 on itself as a fast clear operation
-	vcvtsi2sd %rdx, %xmm0, %xmm0
-	mov $0x7f4738e9f828, %rax
-	vmulsd (%rax), %xmm0, %xmm0
-	vaddsd %xmm0, %xmm2, %xmm2
-	add $0x1, %rdx
+.L1:                                 // Loop head
+	cmp %rcx, %rdx                   // Test loop exit conndition...
+	jge jit$$trace_exit_0            // ...and exit if hit.
+	vxorps %xmm0, %xmm0, %xmm0       // Quick clear xmm0 (xor with itself)
+	vcvtsi2sd %rdx, %xmm0, %xmm0     // Converts integer counter in rdx to double precision in xmm0.
+	mov $0x7f4738e9f828, %rax        // Loads resolved address of literal into rax
+	vmulsd (%rax), %xmm0, %xmm0      // Scale
+	vaddsd %xmm0, %xmm2, %xmm2       // Accumulate
+	add $0x1, %rdx                   // Increment loop count
 	mov $EG(vm_interrupt), %rax      // Test for user break or other interrupt conditions
-	cmp $0x0, (%rax)
-	jz .L1
-	jmp jit$$trace_exit_1
+	cmp $0x0, (%rax)                 // If zero we ca
+	jz .L1                           // Iterate
+	jmp jit$$trace_exit_1            // Interrupted
 
 // Direct Call
 

@@ -299,8 +299,10 @@ TRACE-1$accumulate$13:
 This looks a lot more like our suggested assembler above. It is still suboptimal as it needlessly reloads %rax to check for user interruption every time but we have also removed several instructions from the loop.
 
 Unsurprisingly, this runs faster:
-- User time: 2.33 seconds, compared to 2.94 seconds for the original version.
+
+- User time: 2.33 seconds, compared to 2.94 seconds for the original version and 2.30 seconds for the optimised C++ equivalent.
 - 26.2% peformance gain.
+- Reaches 98.7% of the performance of the optimised C++ equivalent.
 
 There is no immediate way to fix the continuous %rax clobbering that forms part of the interrupt checking. However:
 - We can see it is executed only once per loop.
