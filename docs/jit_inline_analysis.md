@@ -70,10 +70,9 @@ TRACE-1$accumulate$13:
 
     vxorps    %xmm0, %xmm0, %xmm0    ; XOR hack to zero out %xmm0, use as $fTemp
     vcvtsi2sd %rdx,  %xmm0, %xmm0    ; Cast $i to double precision in $fTemp
-
     mov $0x7f4738e9f828, %rax        ; Loads resolved address of literal 0.001 into %rax
     vmulsd (%rax), %xmm0, %xmm0      ; $fTemp = 0.001 * $fTemp
-    vaddsd %xmm0, %xmm2, %xmm2       ; $fAcum += $fTemp
+    vaddsd %xmm0,  %xmm2, %xmm2      ; $fAcum += $fTemp
 
     add $0x1, %rdx                   ; $i++
     mov $EG(vm_interrupt), %rax      ; Test for user break or other interrupt conditions
@@ -113,8 +112,8 @@ TRACE-1$accumulate$13:
     vxorps    %xmm0, %xmm0, %xmm0    ; All register to register here
     vcvtsi2sd %rdx,  %xmm0, %xmm0
     vmulsd    %xmm1, %xmm0, %xmm0
-
     vaddsd    %xmm0, %xmm2, %xmm2
+
     add       $0x1, %rdx
     cmp       $0x0, (%rax)
     jz        .L1
@@ -123,21 +122,23 @@ TRACE-1$accumulate$13:
 
 ### Inference
 
-The above output implies the translation of _PHP Opcode_ to native code follows a relatively straightforward path in which specific opcodes map to a template of assembler that is parameterised with register allocation and other compile paramters and then emitted wholesale. For example:
+The above output implies the translation of _PHP Opcode_ to native code follows a relatively straightforward path in which specific opcodes map to a template of assembler that is parameterised with register allocation and other compile paramters and then emitted wholesale. For example, the basic multiply-accumulate `$fAcum += 0.001 * $i;` statement yields:
 
 ```
 line      #* E I O op                           fetch          ext  return  operands
 -------------------------------------------------------------------------------------
-   15     4    >   MUL                                              ~3      !2, 0.001   
+   15     4    >   MUL                                              ~3      !2, 0.001
+          5        ADD                                              !1      !1, ~3   
 ```
 
-Appears to correspond directly to the following sequence:
+Which in turn appears to correspond directly to the following sequence:
 
 ```asm
     vxorps    %xmm0, %xmm0, %xmm0
     vcvtsi2sd %rdx,  %xmm0, %xmm0
     mov       $0x7f4738e9f828, %rax
     vmulsd    (%rax), %xmm0, %xmm0
+    vaddsd    %xmm0,  %xmm2, %xmm2
 ```
 
 Modifying the original function, we can test this assumption:
@@ -190,20 +191,21 @@ TRACE-1$accumulate$14: ; (unknown)
     jge       jit$$trace_exit_0
 
     ; 15     4    >   MUL                                              ~3      !2, 0.0005
+    ;        5        ADD                                              !1      !1, ~3
     vxorps    %xmm0, %xmm0, %xmm0
     vcvtsi2sd %rdx,  %xmm0, %xmm0
     mov       $0x7fe7e7a94828, %rax
     vmulsd    (%rax), %xmm0, %xmm0
-
     vaddsd    %xmm0, %xmm2, %xmm1
 
     ; 16     6        MUL                                              ~3      !2, 0.0005
+    ;        7        ADD                                              !1      !1, ~3
     vxorps    %xmm0, %xmm0, %xmm0
     vcvtsi2sd %rdx,  %xmm0, %xmm0
     mov       $0x7fe7e7a94828, %rax
     vmulsd    (%rax), %xmm0, %xmm0
- 
     vaddsd    %xmm0, %xmm1, %xmm2
+
     add       $0x1, %rdx
     mov       $EG(vm_interrupt), %rax
     cmp       $0x0, (%rax)
@@ -212,7 +214,7 @@ TRACE-1$accumulate$14: ; (unknown)
 
 ```
 
-We can clearly see that the effort in translating the address of the literal 0.0005 is duplicated here.
+We can clearly see that the effort is duplicated here.
 
 ### Go faster, damnit!
 
@@ -229,7 +231,7 @@ function accumulate(int $iMax) : float {
 }
 ```
 
-The answer to the comment is: No. The PHP Opcace code generator defeats this by recognising that `$fScale` is an invariant reference to a literal, folds it and emits _exactly_ the same opcode as before. Which is perfect for interpretive execution but bad for JIT. We can be more underhand, however:
+The answer to the comment is: No. The PHP Opcache code generator defeats this by recognising that `$fScale` is an invariant reference to a literal, folds it and emits _exactly_ the same opcode as before. Which is perfect for interpretive execution but not for JIT. We can be more underhand, however:
 
 ```php
 function accumulate(int $iMax, float $fScale = 0.001) : float {
@@ -280,20 +282,23 @@ TRACE-1$accumulate$13:
     jge       jit$$trace_exit_0
 
     ; 14     5    >   MUL                                              ~4      !1, !3
+    ;        6        ADD                                              !2      !2, ~4
     vxorps    %xmm0, %xmm0, %xmm0
     vcvtsi2sd %rdx,  %xmm0, %xmm0
     vmulsd    %xmm3, %xmm0, %xmm0 ; No memory accesses
-
     vaddsd    %xmm0, %xmm2, %xmm2
+
     add       $0x1, %rdx
     mov       $EG(vm_interrupt), %rax
     cmp       $0x0, (%rax)
-    jz       .L1
-    jmp      jit$$trace_exit_1
+    jz        .L1
+    jmp       jit$$trace_exit_1
 
 ```
 
-This looks a lot more like our suggested assembler, but is still suboptimal as it needlessly reloads %rax to check for user interruption every time but we have also removed several instructions from the loop. Unsurprisingly, this in turn runs faster:
+This looks a lot more like our suggested assembler above. It is still suboptimal as it needlessly reloads %rax to check for user interruption every time but we have also removed several instructions from the loop.
+
+Unsurprisingly, this runs faster:
 - User time: 2.33 seconds, compared to 2.94 seconds for the original version.
 - 26.2% peformance gain.
 
@@ -301,4 +306,4 @@ There is no immediate way to fix the continuous %rax clobbering that forms part 
 - We can see it is executed only once per loop.
 - Manually unrolling loops would increase the amount of work done per interrupt check.
 - Only really sensible for very short loops like this one.
-- 
+
