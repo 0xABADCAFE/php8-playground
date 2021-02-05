@@ -87,6 +87,9 @@ TRACE-1$accumulate$18:
 
 .L2:
     ; This looks like some PHP call stack instrumentation.
+    ; It could be stack state preservation in case an exception is raised when calling
+    ; the scale() operation (see .L5)
+    
     mov     $EG(vm_stack_top), %r15
     mov     (%r15), %r15
     mov     $EG(vm_stack_top), %rdx
@@ -184,7 +187,8 @@ However, we can also see a lot of issues here too:
     - Conditionally the code at L4 is called, likely some lazy-initialised stuff.
     - Most of the time, we are executing the following code blocks:
     - .L1 > .L2 > (.L5 ?) .L3 > repeat
-        - It is unclear if .L5 is called from L2 on every call of if it's checked only on the first iteration based on usage.
+        - It is unclear if .L5 is called from .L2 on every call of if it's checked only on the first iteration based on usage.
+        - The purpose of .L2 is not entirely clear but looks like it could be to record the state of the stack in case an exception is triggered at .L5
 - Many variables are no longer register allocated.
 - Not treating the function call as "special" leads to a lot of stack manipulation in which all the function call setup and return drudgery is still performed and the only thing we lack is a `call` operation in the output assembler:
     - As we have seen in the native tests, the overhead of this operation is actually very small.
