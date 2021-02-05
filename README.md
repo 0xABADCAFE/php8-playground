@@ -115,3 +115,4 @@ Notes:
 ### JIT Analysis
 
 - [Inline Example](./docs/jit_inline_analysis.md)
+- [Direct Call Example](./docs/jit_direct_call_analysis.md)
