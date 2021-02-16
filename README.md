@@ -22,6 +22,34 @@ opcache.jit_buffer_size=1M
 opcache.jit=1255
 ```
 
+Notes:
+
+The JIT flags is actually a numeric string comprising of the following four individual properties:
+
+- C (CPU specific optimisations):
+    - 0 None.
+    - 1 Enable AVX instruction generation.
+- R (Register allocator):
+    - 0 No register allocation.
+    - 1 Local liner-scan register allocation.
+    - 2 Global liner-scan register allocation.
+- T (JIT Trigger):
+    - 0 JIT all functions on script load.
+    - 1 JIT function on first execution.
+    - 2 Profile on first request and profile hot functions on second request.
+    - 3 Profile on the fly and compile hot functions.
+    - 4 Compile functions with @jit tag in doc comments.
+    - 5 Tracing JIT.
+- O (Optimisation Level):
+    - 0 No JIT.
+    - 1 Minimal JIT (call standard VM handlers).
+    - 2 Selective VM handler inlining.
+    - 3 Optimised JIT based on static type inference of individual function.
+    - 4 Optimised JIT based on static type inference and call tree.
+    - 5 Optimised JIT based on static type inference and inner procedure analyeses.
+
+Given the higher levels of optimisation perform type inference, we can infer that code that is strongly typed ought to perform better and that implicit type conversion is likely to hurt.
+
 ## Test Hardware
 
 All tests conducted in a single threaded model.
@@ -76,6 +104,11 @@ Function call overhead for a small (simple multiply-accumulate) function is test
 | method    | Yes     | 46.89        | 15.99       | 2.93 | 3.97 | 5.51 |
 | closure   | No      | 62.39        | 16.74       | 3.73 | 5.26 | 5.69 |
 | closure   | Yes     | 62.32        | 16.73       | 3.73 | 5.28 | 5.77 |
+| magic 1   | No      | 136.86       | 129.77      | 1.05 | 11.60 | 44.75 |
+| magic 1   | Yes     | 140.64       | 122.02      | 1.15 | 11.92 | 42.08 |
+| magic 2   | No      | 151.53       | 131.52      | 1.15 | 12.77 | 44.74 |
+| magic 2   | Yes     | 155.48       | 131.99      | 1.18 | 13.18 | 45.51 |
+
 
 Notes:
 
@@ -83,6 +116,8 @@ Notes:
 - indirect is a call by function name to a globally defined function.
 - method is a call to a member function on an instance of a class.
 - closure is a call to a locally declared anonymous function.
+- magic 1 is via __call() hook
+- magic 2 is via __callStatic() hook
 
 ### Theoretical Best
 
