@@ -109,6 +109,7 @@ Function call overhead for a small (simple multiply-accumulate) function is test
 | magic 2   | No      | 151.53       | 131.52      | 1.15 | 12.77 | 44.74 |
 | magic 2   | Yes     | 155.48       | 131.99      | 1.18 | 13.18 | 45.51 |
 
+![Call Overhead](docs/images/call_overhead.png)
 
 Notes:
 
@@ -116,8 +117,8 @@ Notes:
 - indirect is a call by function name to a globally defined function.
 - method is a call to a member function on an instance of a class.
 - closure is a call to a locally declared anonymous function.
-- magic 1 is via __call() hook
-- magic 2 is via __callStatic() hook
+- magic 1 is via __call() hook.
+- magic 2 is via __callStatic() hook.
 
 ### Theoretical Best
 
@@ -141,13 +142,15 @@ Notes:
 ### Conclusion
 
 - Strict type enforcement has no significant impact on either execution model.
-- JIT mode can offer significant speed up for simple imperative code.
+    - Type inferences are made at runtime, so declare based strict type enforcement should be seen as a code quality tool.
+- JIT mode can offer significant speed up for simple imperative code:
     - Up to 78.2% of the optimised native version for the _inline_ example!
-- Function call overhead remains large in either execution model but has a larger impact on JIT executed code.
+- Function call overhead remains large in either execution model but has a larger impact on JIT executed code:
     - Markedly different from native code where the impact of inlining in the example above was difficult to measure.
+- Magic call overhead remains extraordinarily bad:
+    - For a trivial action, the overhead of a __call() based invocation is at least 10x worse than a regular function call.
 
-
-### JIT Analysis
+### Deeper JIT Analysis
 
 - [Inline Example](./docs/jit_inline_analysis.md)
 - [Direct Call Example](./docs/jit_direct_call_analysis.md)
