@@ -161,6 +161,16 @@ In order to better understand how PHP8 accelerates the execution of the examples
 - [Inline Example](./docs/jit_inline_analysis.md)
 - [Direct Call Example](./docs/jit_direct_call_analysis.md)
 
+Results can be summarised as follows:
+
+- The work undertaken by a single PHP opcode is translated into a unit of assembly language
+    - Good for debugging tools which can still assume an opcode view of the execution plan.
+    - Bad for performance as the resulting code is full of duplication and missed optimisations.
+- Function calls are impeded by the need to perform runtime checks:
+    - Strict type enforcement does not guarantee that a function can't be given invalid input or internally generate an incompatible return type. These are caught at runtime.
+    - Without the ability to specify that a method does not throw any _Exception_ (i.e. there is no exception specififier syntax) the runtime has to assume any function can throw any error and make sure that the stack is managed correctly at all times whenever any function, no matter how small, is called.
+
+
 ### Conclusion
 
 - PHP8 JIT execution is capable of significant performance gain over interpretation, however, in order to reach anything approaching natively compiled code in C requires ignoring a degree of commoon _best practise_, e.g:
