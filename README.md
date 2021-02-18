@@ -129,6 +129,8 @@ Compare the above results with compiled C++ equivalent versions on the same hard
 | inline    | 6.88            | 2.30             | 2.99 | _N/A_ |
 | direct    | 6.96            | 2.30             | 3.03 | 1.012 |
 
+![Comparison with C](docs/images/call_compare_c.png)
+
 Notes:
 
 - Used gcc 9.3.0
@@ -139,7 +141,8 @@ Notes:
     - Generation of non-inlined direct function call confirmed in assembler output.
     - Had to perform multiple runs to extract the actual timing difference from the variance between runs.
 
-### Conclusion
+
+### Observations
 
 - Strict type enforcement has no significant impact on either execution model.
     - Type inferences are made at runtime, so declare based strict type enforcement should be seen as a code quality tool.
@@ -150,7 +153,24 @@ Notes:
 - Magic call overhead remains extraordinarily bad:
     - For a trivial action, the overhead of a __call() based invocation is at least 10x worse than a regular function call.
 
+
 ### Deeper JIT Analysis
+
+In order to better understand how PHP8 accelerates the execution of the examples used in the test, please see the following pages.
 
 - [Inline Example](./docs/jit_inline_analysis.md)
 - [Direct Call Example](./docs/jit_direct_call_analysis.md)
+
+### Conclusion
+
+- PHP8 JIT execution is capable of significant performance gain over interpretation, however, in order to reach anything approaching natively compiled code in C requires ignoring a degree of commoon _best practise_, e.g:
+    - Not factoring out common code into smaller functions.
+    - Weakening encapsulation by implementing classes in a more _structure_ like way, i.e. foregoing simple getter/setter methods and allowing direct access to member properties where required.
+    - Writing code in a more _imperative_ and less _functional_ way.
+- In addition to the above, greater reliance on the developer optimising the PHP code manually using oldschool techniques, e.g:
+    - Manually inlining small functions.
+    - Common subexpression elimination.
+    - Loop unrolling.
+    - Strength reduction.
+    - Better understanding the PHP opcode output and how it is assembled in JIT mode.
+- Until these issues are addressed by PHP itself, PHP8 JIT is not yet a viable alternative for natively compiled extensions except where those extensions are not compute bound.
